@@ -1,44 +1,37 @@
-using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using Unity.VisualScripting;
 using UnityEngine;
 
 public class MazeGenerator : MonoBehaviour
 {
     public GameObject[] tiles;
+    [SerializeField] private int width = 10;   // Width of map  
+    [SerializeField] private int height = 10;  // Height of map
+    
+    private const int N = 1;
+    private const int E = 2;
+    private const int S = 4;
+    private const int W = 8;
+    private const float TileSize = 10;
 
-    const int N = 1;
-    const int E = 2;
-    const int S = 4;
-    const int W = 8;
+    private readonly Dictionary<Vector2, int> _cellWalls = new();
 
-    Dictionary<Vector2, int> cell_walls = new Dictionary<Vector2, int>();
-
-    float tile_size = 10;
-    int width = 10;   // Width of map  
-    int height = 10;  // Height of map
-
-    List<List<int>> map = new List<List<int>>();
-
-
-    // Start is called before the first frame update
-    void Start()
+    private readonly List<List<int>> _map = new();
+    
+    private void Start()
     {
-        cell_walls[new Vector2(0, -1)] = N;
-        cell_walls[new Vector2(1, 0)] = E;
-        cell_walls[new Vector2(0, 1)] = S;
-        cell_walls[new Vector2(-1, 0)] = W;
+        _cellWalls[new Vector2(0, -1)] = N;
+        _cellWalls[new Vector2(1, 0)] = E;
+        _cellWalls[new Vector2(0, 1)] = S;
+        _cellWalls[new Vector2(-1, 0)] = W;
 
         MakeMaze();
     }
 
     private List<Vector2> CheckNeighbors(Vector2 cell, List<Vector2> unvisited) {
         // Returns a list of cell's unvisited neighbors
-        List<Vector2> list = new List<Vector2>();
+        var list = new List<Vector2>();
 
-        foreach (var n in cell_walls.Keys)
+        foreach (var n in _cellWalls.Keys)
         {
             if (unvisited.IndexOf((cell + n)) != -1) { 
                 list.Add(cell+ n);
@@ -47,46 +40,45 @@ public class MazeGenerator : MonoBehaviour
         }
         return list;
     }
-
-
+    
     private void MakeMaze()
     {
-        List<Vector2> unvisited = new List<Vector2>();
-        List<Vector2> stack = new List<Vector2>();
+        var unvisited = new List<Vector2>();
+        var stack = new List<Vector2>();
 
         // Fill the map with #15 tiles
-        for (int i = 0; i < width; i++)
+        for (var i = 0; i < width; i++)
         {
-            map.Add(new List<int>());
-            for (int j = 0; j < height; j++)
+            _map.Add(new List<int>());
+            for (var j = 0; j < height; j++)
             {
-                map[i].Add(N | E | S | W);
+                _map[i].Add(N | E | S | W);
                 unvisited.Add(new Vector2(i, j));
             }
 
         }
 
-        Vector2 current = new Vector2(0, 0);
+        var current = new Vector2(0, 0);
 
         unvisited.Remove(current);
 
         while (unvisited.Count > 0) {
-            List<Vector2> neighbors = CheckNeighbors(current, unvisited);
+            var neighbors = CheckNeighbors(current, unvisited);
 
             if (neighbors.Count > 0)
             {
-                Vector2 next = neighbors[UnityEngine.Random.RandomRange(0, neighbors.Count)];
+                var next = neighbors[Random.Range(0, neighbors.Count)];
                 stack.Add(current);
 
-                Vector2 dir = next - current;
+                var dir = next - current;
 
-                int current_walls = map[(int)current.x][(int)current.y] - cell_walls[dir];
+                var currentWalls = _map[(int)current.x][(int)current.y] - _cellWalls[dir];
 
-                int next_walls = map[(int)next.x][(int)next.y] - cell_walls[-dir];
+                var nextWalls = _map[(int)next.x][(int)next.y] - _cellWalls[-dir];
 
-                map[(int)current.x][(int)current.y] = current_walls;
+                _map[(int)current.x][(int)current.y] = currentWalls;
 
-                map[(int)next.x][(int)next.y] = next_walls;
+                _map[(int)next.x][(int)next.y] = nextWalls;
 
                 current = next;
                 unvisited.Remove(current);
@@ -97,25 +89,18 @@ public class MazeGenerator : MonoBehaviour
                 stack.RemoveAt(stack.Count - 1);
             
             }
-
-            
         }
 
-        for (int i = 0; i < width; i++)
+        for (var i = 0; i < width; i++)
         {
-            
-            for (int j = 0; j < height; j++)
+            for (var j = 0; j < height; j++)
             {
-                GameObject tile = GameObject.Instantiate(tiles[map[i][j]]);
-                tile.transform.parent = gameObject.transform;
+                var tile = Instantiate(tiles[_map[i][j]], gameObject.transform, true);
 
-                tile.transform.Translate(new Vector3 (j*tile_size, 0, i * tile_size));
-                tile.name += " " + i.ToString() + ' ' + j.ToString(); 
-                //float waitFrames = Time.deltaTime * 2;
-                //yield return new WaitForSeconds(waitFrames);
+                tile.transform.Translate(new Vector3 (j*TileSize, 0, i * TileSize));
+                tile.name += " " + i + ' ' + j; 
             }
 
         }
-
     }
 }
